@@ -169,5 +169,8 @@ int main(int argc, char *argv[])
     std::cout << "Best frame: " << tr.best_frame_ms << " ms" << std::endl;
     std::cout << "Worst frame: " << tr.worst_frame_ms << " ms" << std::endl;
 
+    std::cout << "Average fps: " << (num_frames * 1000.0 / tr.total_ms)
+              << std::endl;
+
     return EXIT_SUCCESS;
 }
