@@ -74,25 +74,25 @@ RawImg decompress_memory_jpeg(MemJPEG &mjpg)
     return raw;
 }
 
-RawImg decompress_memory_turbo_jpeg(MemJPEG &mjpg, tjhandle& jpegDecompressor)
+RawImg decompress_memory_turbo_jpeg(MemJPEG &mjpg, tjhandle &jpegDecompressor)
 {
     RawImg raw;
 
     constexpr int COLOR_COMPONENTS = 3;
 
     long unsigned int _jpegSize = mjpg.jpg_size; //!< _jpegSize from above
-    unsigned char* _compressedImage = mjpg.jpg_buffer.data(); //!< _compressedImage from above
-    
+    unsigned char *_compressedImage =
+        mjpg.jpg_buffer.data(); //!< _compressedImage from above
+
     int jpegSubsamp{-1};
     int width{0};
     int height{0};
-    
-    
-    
-    tjDecompressHeader2(jpegDecompressor, _compressedImage, _jpegSize, &width, &height, &jpegSubsamp);
-   
-    // unsigned char buffer[width*height*COLOR_COMPONENTS]; //!< will contain the decompressed image
-    
+
+    tjDecompressHeader2(jpegDecompressor, _compressedImage, _jpegSize, &width,
+                        &height, &jpegSubsamp);
+
+    // unsigned char buffer[width*height*COLOR_COMPONENTS]; //!< will contain
+    // the decompressed image
 
     raw.width = width;
     raw.height = height;
@@ -101,13 +101,14 @@ RawImg decompress_memory_turbo_jpeg(MemJPEG &mjpg, tjhandle& jpegDecompressor)
     raw.bmp_buffer.resize(raw.bmp_size);
     raw.row_stride = raw.width * raw.pixel_size;
 
-    tjDecompress2(jpegDecompressor, _compressedImage, _jpegSize, raw.bmp_buffer.data(), width, 0/*pitch*/, height, TJPF_RGB, TJFLAG_FASTDCT);
-    
+    tjDecompress2(jpegDecompressor, _compressedImage, _jpegSize,
+                  raw.bmp_buffer.data(), width, 0 /*pitch*/, height, TJPF_RGB,
+                  TJFLAG_FASTDCT);
+
     // tjDestroy(jpegDecompressor);
 
     return raw;
 }
-
 
 MemJPEG read_file_jpeg(const std::string &filename)
 {
@@ -173,17 +174,16 @@ int main(int argc, char *argv[])
     const size_t height = static_cast<size_t>(std::stoi(argv[3]));
     const size_t num_frames = static_cast<size_t>(std::stoi(argv[4]));
 
-
     tjhandle jpegDecompressor = tjInitDecompress();
     MemJPEG mjpg = read_file_jpeg(filename);
     RawImg raw = decompress_memory_turbo_jpeg(mjpg, jpegDecompressor);
-    
+
     if (true)
     {
         write_ppm(raw, "output.ppm");
     };
-    
-    const size_t num_tiles = (width/raw.width)*(height/raw.height);
+
+    const size_t num_tiles = (width / raw.width) * (height / raw.height);
 
     std::vector<RawImg> imgs(num_tiles);
     std::vector<tjhandle> handles(num_tiles);
@@ -212,8 +212,7 @@ int main(int argc, char *argv[])
     }
 
     for (int i = 0; i < num_tiles; i++)
-      tjDestroy(handles[i]);
-
+        tjDestroy(handles[i]);
 
     std::cout << "Ran " << num_frames << " frames with " << num_tiles
               << " tiles in " << tr.total_ms << " ms" << std::endl;
@@ -222,6 +221,12 @@ int main(int argc, char *argv[])
     std::cout << "Worst frame: " << tr.worst_frame_ms << " ms" << std::endl;
 
     std::cout << "Average fps: " << (num_frames * 1000.0 / tr.total_ms)
+              << std::endl;
+
+    const size_t pixels_decoded =
+        (raw.width * raw.height) * num_tiles * num_frames;
+    std::cout << "Megapixels/s: "
+              << (pixels_decoded * 1000.0 * 0.000001 / tr.total_ms)
               << std::endl;
 
     return EXIT_SUCCESS;
