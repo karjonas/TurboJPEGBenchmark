@@ -11,7 +11,6 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 find_package(OpenMP REQUIRED)
 
 add_executable (decompress memdjpeg.cpp)
-target_link_libraries (decompress LINK_PUBLIC jpeg)
 
 # For CMake < 3.9, we need to make the target ourselves
 if(NOT TARGET OpenMP::OpenMP_CXX)
@@ -24,6 +23,6 @@ if(NOT TARGET OpenMP::OpenMP_CXX)
                  PROPERTY INTERFACE_LINK_LIBRARIES ${OpenMP_CXX_FLAGS} Threads::Threads)
 endif()
 
-#add_subdirectory(libjpeg-turbo)
-#target_include_directories(decompress PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/libjpeg-turbo/)
-target_link_libraries(decompress PUBLIC OpenMP::OpenMP_CXX turbojpeg)
+add_subdirectory(libjpeg-turbo)
+target_include_directories(decompress PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/libjpeg-turbo)
+target_link_libraries(decompress PUBLIC OpenMP::OpenMP_CXX turbojpeg-static)

@@ -33,6 +33,8 @@ struct RawImg
     std::vector<unsigned char> bmp_buffer;
 };
 
+#if 0
+
 RawImg decompress_memory_jpeg(MemJPEG &mjpg)
 {
     RawImg raw;
@@ -73,6 +75,7 @@ RawImg decompress_memory_jpeg(MemJPEG &mjpg)
 
     return raw;
 }
+#endif
 
 RawImg decompress_memory_turbo_jpeg(MemJPEG mjpg)
 {
@@ -113,6 +116,7 @@ RawImg decompress_memory_turbo_jpeg(MemJPEG mjpg)
 MemJPEG read_file_jpeg(const std::string &filename)
 {
     MemJPEG memjpeg;
+
     struct stat file_info;
 
     int rc = stat(filename.c_str(), &file_info);
