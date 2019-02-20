@@ -124,22 +124,27 @@ struct TimingResult
 
 int main(int argc, char *argv[])
 {
-    if (argc != 4)
+    if (argc != 5)
     {
-        fprintf(stderr, "USAGE: %s filename.jpg num_frames num_tiles\n",
+        fprintf(stderr, "USAGE: %s filename.jpg width height num_frames\n",
                 argv[0]);
         exit(EXIT_FAILURE);
     }
 
-    const size_t num_frames = static_cast<size_t>(std::stoi(argv[2]));
-    const size_t num_tiles = static_cast<size_t>(std::stoi(argv[3]));
+    const std::string filename = argv[1];
+    const size_t width = static_cast<size_t>(std::stoi(argv[2]));
+    const size_t height = static_cast<size_t>(std::stoi(argv[3]));
+    const size_t num_frames = static_cast<size_t>(std::stoi(argv[4]));
 
-    MemJPEG mjpg = read_file_jpeg(argv[1]);
+    MemJPEG mjpg = read_file_jpeg(filename);
+    RawImg raw = decompress_memory_jpeg(mjpg);
+    
     if (false)
     {
-        RawImg raw = decompress_memory_jpeg(mjpg);
         write_ppm(raw, "output.ppm");
     };
+    
+    const size_t num_tiles = (width/raw.width)*(height/raw.height);
 
     std::vector<RawImg> imgs(num_tiles);
 
