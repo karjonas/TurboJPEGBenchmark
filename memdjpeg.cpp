@@ -13,6 +13,8 @@
 #include <string>
 #include <vector>
 
+#include <turbojpeg.h>
+
 typedef std::chrono::high_resolution_clock Clock;
 
 struct MemJPEG
@@ -71,6 +73,41 @@ RawImg decompress_memory_jpeg(MemJPEG &mjpg)
 
     return raw;
 }
+
+RawImg decompress_memory_turbo_jpeg(MemJPEG &mjpg)
+{
+    RawImg raw;
+
+    constexpr int COLOR_COMPONENTS = 3;
+
+    long unsigned int _jpegSize = mjpg.jpg_size; //!< _jpegSize from above
+    unsigned char* _compressedImage = mjpg.jpg_buffer.data(); //!< _compressedImage from above
+    
+    int jpegSubsamp{-1};
+    int width{0};
+    int height{0};
+    
+    tjhandle _jpegDecompressor = tjInitDecompress();
+    
+    tjDecompressHeader2(_jpegDecompressor, _compressedImage, _jpegSize, &width, &height, &jpegSubsamp);
+   
+    // unsigned char buffer[width*height*COLOR_COMPONENTS]; //!< will contain the decompressed image
+    
+
+    raw.width = width;
+    raw.height = height;
+    raw.pixel_size = COLOR_COMPONENTS;
+    raw.bmp_size = raw.width * raw.height * raw.pixel_size;
+    raw.bmp_buffer.resize(raw.bmp_size);
+    raw.row_stride = raw.width * raw.pixel_size;
+
+    tjDecompress2(_jpegDecompressor, _compressedImage, _jpegSize, raw.bmp_buffer.data(), width, 0/*pitch*/, height, TJPF_RGB, TJFLAG_FASTDCT);
+    
+    tjDestroy(_jpegDecompressor);
+
+    return raw;
+}
+
 
 MemJPEG read_file_jpeg(const std::string &filename)
 {
@@ -137,9 +174,9 @@ int main(int argc, char *argv[])
     const size_t num_frames = static_cast<size_t>(std::stoi(argv[4]));
 
     MemJPEG mjpg = read_file_jpeg(filename);
-    RawImg raw = decompress_memory_jpeg(mjpg);
+    RawImg raw = decompress_memory_turbo_jpeg(mjpg);
     
-    if (false)
+    if (true)
     {
         write_ppm(raw, "output.ppm");
     };
