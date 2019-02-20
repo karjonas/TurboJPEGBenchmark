@@ -24,4 +24,6 @@ if(NOT TARGET OpenMP::OpenMP_CXX)
                  PROPERTY INTERFACE_LINK_LIBRARIES ${OpenMP_CXX_FLAGS} Threads::Threads)
 endif()
 
-target_link_libraries(decompress PUBLIC OpenMP::OpenMP_CXX)
+add_subdirectory(libjpeg-turbo)
+target_include_directories(decompress PUBLIC ./libjpeg-turbo/install/include/)
+target_link_libraries(decompress PUBLIC OpenMP::OpenMP_CXX turbojpeg)
