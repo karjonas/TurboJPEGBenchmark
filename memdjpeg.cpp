@@ -74,7 +74,7 @@ RawImg decompress_memory_jpeg(MemJPEG &mjpg)
     return raw;
 }
 
-RawImg decompress_memory_turbo_jpeg(MemJPEG &mjpg)
+RawImg decompress_memory_turbo_jpeg(MemJPEG &mjpg, tjhandle& jpegDecompressor)
 {
     RawImg raw;
 
@@ -87,9 +87,9 @@ RawImg decompress_memory_turbo_jpeg(MemJPEG &mjpg)
     int width{0};
     int height{0};
     
-    tjhandle _jpegDecompressor = tjInitDecompress();
     
-    tjDecompressHeader2(_jpegDecompressor, _compressedImage, _jpegSize, &width, &height, &jpegSubsamp);
+    
+    tjDecompressHeader2(jpegDecompressor, _compressedImage, _jpegSize, &width, &height, &jpegSubsamp);
    
     // unsigned char buffer[width*height*COLOR_COMPONENTS]; //!< will contain the decompressed image
     
@@ -101,9 +101,9 @@ RawImg decompress_memory_turbo_jpeg(MemJPEG &mjpg)
     raw.bmp_buffer.resize(raw.bmp_size);
     raw.row_stride = raw.width * raw.pixel_size;
 
-    tjDecompress2(_jpegDecompressor, _compressedImage, _jpegSize, raw.bmp_buffer.data(), width, 0/*pitch*/, height, TJPF_RGB, TJFLAG_FASTDCT);
+    tjDecompress2(jpegDecompressor, _compressedImage, _jpegSize, raw.bmp_buffer.data(), width, 0/*pitch*/, height, TJPF_RGB, TJFLAG_FASTDCT);
     
-    tjDestroy(_jpegDecompressor);
+    // tjDestroy(jpegDecompressor);
 
     return raw;
 }
@@ -173,8 +173,10 @@ int main(int argc, char *argv[])
     const size_t height = static_cast<size_t>(std::stoi(argv[3]));
     const size_t num_frames = static_cast<size_t>(std::stoi(argv[4]));
 
+
+    tjhandle jpegDecompressor = tjInitDecompress();
     MemJPEG mjpg = read_file_jpeg(filename);
-    RawImg raw = decompress_memory_turbo_jpeg(mjpg);
+    RawImg raw = decompress_memory_turbo_jpeg(mjpg, jpegDecompressor);
     
     if (true)
     {
@@ -184,6 +186,10 @@ int main(int argc, char *argv[])
     const size_t num_tiles = (width/raw.width)*(height/raw.height);
 
     std::vector<RawImg> imgs(num_tiles);
+    std::vector<tjhandle> handles(num_tiles);
+
+    for (int i = 0; i < num_tiles; i++)
+        handles[i] = tjInitDecompress();
 
     TimingResult tr;
     for (int frame = 0; frame < num_frames; frame++)
@@ -192,7 +198,7 @@ int main(int argc, char *argv[])
 #pragma omp parallel for
         for (int i = 0; i < num_tiles; i++)
         {
-            imgs[i] = decompress_memory_turbo_jpeg(mjpg);
+            imgs[i] = decompress_memory_turbo_jpeg(mjpg, handles[i]);
         }
         auto t2 = Clock::now();
 
@@ -204,6 +210,10 @@ int main(int argc, char *argv[])
         tr.worst_frame_ms = std::max(cnt, tr.worst_frame_ms);
         tr.total_ms += cnt;
     }
+
+    for (int i = 0; i < num_tiles; i++)
+      tjDestroy(handles[i]);
+
 
     std::cout << "Ran " << num_frames << " frames with " << num_tiles
               << " tiles in " << tr.total_ms << " ms" << std::endl;
