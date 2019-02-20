@@ -192,7 +192,7 @@ int main(int argc, char *argv[])
 #pragma omp parallel for
         for (int i = 0; i < num_tiles; i++)
         {
-            imgs[i] = decompress_memory_jpeg(mjpg);
+            imgs[i] = decompress_memory_turbo_jpeg(mjpg);
         }
         auto t2 = Clock::now();
 
