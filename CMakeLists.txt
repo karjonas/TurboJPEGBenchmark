@@ -25,4 +25,5 @@ endif()
 
 add_subdirectory(libjpeg-turbo)
 target_include_directories(decompress PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/libjpeg-turbo)
+target_include_directories(decompress PUBLIC ${CMAKE_BINARY_DIR}/libjpeg-turbo)
 target_link_libraries(decompress PUBLIC OpenMP::OpenMP_CXX turbojpeg-static  stdc++fs)

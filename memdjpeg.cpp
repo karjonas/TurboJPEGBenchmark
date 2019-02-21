@@ -213,7 +213,7 @@ int main(int argc, char *argv[])
         for (int i = 0; i < num_tiles; i++)
         {
             ctr = ctr % paths.size();
-            jpgs[i] = read_file_jpeg(paths[i]);
+            jpgs[i] = read_file_jpeg(paths[ctr]);
             ctr++;
         }
     }
