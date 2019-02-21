@@ -1,3 +1,5 @@
+#include "core.h"
+
 #include <cstdio>
 #include <cstdlib>
 #include <jpeglib.h>
@@ -13,30 +15,17 @@
 #include <string>
 #include <vector>
 
-#include <turbojpeg.h>
-
 #include <experimental/filesystem>
 #include <iostream>
 #include <string>
 namespace fs = std::experimental::filesystem;
 
+#include "ctpl_stl.h"
+#include <turbojpeg.h>
+
+#include <limits>
+
 typedef std::chrono::high_resolution_clock Clock;
-
-struct MemJPEG
-{
-    size_t jpg_size{0};
-    std::vector<unsigned char> jpg_buffer;
-};
-
-struct RawImg
-{
-    size_t width{0};
-    size_t height{0};
-    size_t pixel_size{0};
-    size_t bmp_size{0};
-    size_t row_stride{0};
-    std::vector<unsigned char> bmp_buffer;
-};
 
 #if 0
 
@@ -171,63 +160,24 @@ std::vector<std::string> get_directory(const std::string &path)
     return out;
 }
 
-struct TimingResult
+TimingResult decompress_threadpool(TestData &td)
 {
-    size_t best_frame_ms{std::numeric_limits<size_t>::max()};
-    size_t worst_frame_ms{0};
-    size_t total_ms{0};
-};
-
-int main(int argc, char *argv[])
-{
-    if (argc != 5)
-    {
-        fprintf(stderr, "USAGE: %s filename.jpg width height num_frames\n",
-                argv[0]);
-        exit(EXIT_FAILURE);
-    }
-
-    const std::string directory = argv[1];
-    const auto paths = get_directory(directory);
-    // for (const auto &p : paths)
-    //     std::cout << p << std::endl;
-
-    const size_t width = static_cast<size_t>(std::stoi(argv[2]));
-    const size_t height = static_cast<size_t>(std::stoi(argv[3]));
-    const size_t num_frames = static_cast<size_t>(std::stoi(argv[4]));
-
-    MemJPEG mjpg = read_file_jpeg(paths.front());
-    RawImg raw = decompress_memory_turbo_jpeg(mjpg);
-
-    if (true)
-    {
-        write_ppm(raw, "output.ppm");
-    };
-
-    const size_t num_tiles = (width / raw.width) * (height / raw.height);
-    std::vector<MemJPEG> jpgs(num_tiles);
-    std::vector<RawImg> imgs(num_tiles);
-
-    {
-        size_t ctr = 0;
-        for (int i = 0; i < num_tiles; i++)
-        {
-            ctr = ctr % paths.size();
-            jpgs[i] = read_file_jpeg(paths[ctr]);
-            ctr++;
-        }
-    }
-
     TimingResult tr;
+    ctpl::thread_pool p(td.num_threads);
+    std::vector<std::future<void>> results(td.num_tiles);
 
-    for (int frame = 0; frame < num_frames; frame++)
+    for (int frame = 0; frame < td.num_frames; frame++)
     {
         auto t1 = Clock::now();
-#pragma omp parallel for
-        for (int i = 0; i < num_tiles; i++)
+
+        for (int i = 0; i < td.num_tiles; i++)
         {
-            imgs[i] = decompress_memory_turbo_jpeg(jpgs[i]);
+            results[i] = p.push([i, &td](int id) {
+                td.imgs[i] = decompress_memory_turbo_jpeg(td.jpgs[i]);
+            });
         }
+        for (int i = 0; i < td.num_tiles; i++)
+            results[i].wait();
         auto t2 = Clock::now();
 
         const auto cnt = static_cast<size_t>(
@@ -238,20 +188,24 @@ int main(int argc, char *argv[])
         tr.worst_frame_ms = std::max(cnt, tr.worst_frame_ms);
         tr.total_ms += cnt;
     }
-    std::cout << "Ran " << num_frames << " frames with " << num_tiles
+
+    return tr;
+}
+
+void print_results(const TestData &td, const TimingResult &tr)
+{
+    std::cout << "Ran " << td.num_frames << " frames with " << td.num_tiles
               << " tiles in " << tr.total_ms << " ms" << std::endl;
 
     std::cout << "Best frame: " << tr.best_frame_ms << " ms" << std::endl;
     std::cout << "Worst frame: " << tr.worst_frame_ms << " ms" << std::endl;
 
-    std::cout << "Average fps: " << (num_frames * 1000.0 / tr.total_ms)
+    std::cout << "Average fps: " << (td.num_frames * 1000.0 / tr.total_ms)
               << std::endl;
 
     const size_t pixels_decoded =
-        (raw.width * raw.height) * num_tiles * num_frames;
+        (td.tile_width * td.tile_height) * td.num_tiles * td.num_frames;
     std::cout << "Megapixels/s: "
               << (pixels_decoded * 1000.0 * 0.000001 / tr.total_ms)
               << std::endl;
-
-    return EXIT_SUCCESS;
 }

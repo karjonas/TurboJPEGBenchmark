@@ -10,7 +10,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 find_package(OpenMP REQUIRED)
 
-add_executable (decompress memdjpeg.cpp)
+add_executable(decompress decompress.cpp core.cpp core.h)
 
 # For CMake < 3.9, we need to make the target ourselves
 if(NOT TARGET OpenMP::OpenMP_CXX)
