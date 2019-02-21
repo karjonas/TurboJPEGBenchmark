@@ -15,6 +15,11 @@
 
 #include <turbojpeg.h>
 
+#include <experimental/filesystem>
+#include <iostream>
+#include <string>
+namespace fs = std::experimental::filesystem;
+
 typedef std::chrono::high_resolution_clock Clock;
 
 struct MemJPEG
@@ -134,8 +139,9 @@ MemJPEG read_file_jpeg(const std::string &filename)
     while (i < memjpeg.jpg_size)
     {
         rc = read(fd, jpg_buffer + i, memjpeg.jpg_size - i);
-        std::cout << "Input: Read " << rc << "/" << (memjpeg.jpg_size - i)
-                  << " bytes" << std::endl;
+        //      std::cout << "Input: Read " << rc << "/" << (memjpeg.jpg_size -
+        //      i)
+        //                << " bytes" << std::endl;
         i += rc;
     }
 
@@ -157,6 +163,14 @@ void write_ppm(const RawImg &raw, const std::string &output)
     close(fd);
 }
 
+std::vector<std::string> get_directory(const std::string &path)
+{
+    std::vector<std::string> out;
+    for (const auto &entry : fs::directory_iterator(path))
+        out.push_back(entry.path());
+    return out;
+}
+
 struct TimingResult
 {
     size_t best_frame_ms{std::numeric_limits<size_t>::max()};
@@ -173,12 +187,16 @@ int main(int argc, char *argv[])
         exit(EXIT_FAILURE);
     }
 
-    const std::string filename = argv[1];
+    const std::string directory = argv[1];
+    const auto paths = get_directory(directory);
+    // for (const auto &p : paths)
+    //     std::cout << p << std::endl;
+
     const size_t width = static_cast<size_t>(std::stoi(argv[2]));
     const size_t height = static_cast<size_t>(std::stoi(argv[3]));
     const size_t num_frames = static_cast<size_t>(std::stoi(argv[4]));
 
-    MemJPEG mjpg = read_file_jpeg(filename);
+    MemJPEG mjpg = read_file_jpeg(paths.front());
     RawImg raw = decompress_memory_turbo_jpeg(mjpg);
 
     if (true)
@@ -187,8 +205,18 @@ int main(int argc, char *argv[])
     };
 
     const size_t num_tiles = (width / raw.width) * (height / raw.height);
-
+    std::vector<MemJPEG> jpgs(num_tiles);
     std::vector<RawImg> imgs(num_tiles);
+
+    {
+        size_t ctr = 0;
+        for (int i = 0; i < num_tiles; i++)
+        {
+            ctr = ctr % paths.size();
+            jpgs[i] = read_file_jpeg(paths[i]);
+            ctr++;
+        }
+    }
 
     TimingResult tr;
 
@@ -198,7 +226,7 @@ int main(int argc, char *argv[])
 #pragma omp parallel for
         for (int i = 0; i < num_tiles; i++)
         {
-            imgs[i] = decompress_memory_turbo_jpeg(mjpg);
+            imgs[i] = decompress_memory_turbo_jpeg(jpgs[i]);
         }
         auto t2 = Clock::now();
 
