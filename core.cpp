@@ -192,6 +192,34 @@ TimingResult decompress_threadpool(TestData &td)
     return tr;
 }
 
+TimingResult decompress_openmp(TestData &td)
+{
+    TimingResult tr;
+
+    for (int frame = 0; frame < td.num_frames; frame++)
+    {
+        auto t1 = Clock::now();
+
+#pragma omp parallel for
+        for (int i = 0; i < td.num_tiles; i++)
+        {
+            td.imgs[i] = decompress_memory_turbo_jpeg(td.jpgs[i]);
+        }
+
+        auto t2 = Clock::now();
+
+        const auto cnt = static_cast<size_t>(
+            std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1)
+                .count());
+
+        tr.best_frame_ms = std::min(cnt, tr.best_frame_ms);
+        tr.worst_frame_ms = std::max(cnt, tr.worst_frame_ms);
+        tr.total_ms += cnt;
+    }
+
+    return tr;
+}
+
 TestData load_test_data(const std::string directory, const size_t width,
                         const size_t height, const size_t num_frames,
                         const size_t num_threads)

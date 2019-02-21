@@ -43,6 +43,7 @@ RawImg decompress_memory_turbo_jpeg(MemJPEG mjpg);
 MemJPEG read_file_jpeg(const std::string &filename);
 void write_ppm(const RawImg &raw, const std::string &output);
 TimingResult decompress_threadpool(TestData &td);
+TimingResult decompress_openmp(TestData &td);
 TestData load_test_data(const std::string directory, const size_t width,
                         const size_t height, const size_t num_frames,
                         const size_t num_threads);

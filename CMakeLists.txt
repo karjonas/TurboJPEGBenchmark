@@ -10,7 +10,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 find_package(OpenMP REQUIRED)
 
-add_executable(decompress decompress.cpp core.cpp core.h)
+add_library(core core.cpp core.h)
 
 # For CMake < 3.9, we need to make the target ourselves
 if(NOT TARGET OpenMP::OpenMP_CXX)
@@ -24,6 +24,12 @@ if(NOT TARGET OpenMP::OpenMP_CXX)
 endif()
 
 add_subdirectory(libjpeg-turbo)
-target_include_directories(decompress PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/libjpeg-turbo)
-target_include_directories(decompress PUBLIC ${CMAKE_BINARY_DIR}/libjpeg-turbo)
-target_link_libraries(decompress PUBLIC OpenMP::OpenMP_CXX turbojpeg-static  stdc++fs)
+target_include_directories(core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/libjpeg-turbo)
+target_include_directories(core PUBLIC ${CMAKE_BINARY_DIR}/libjpeg-turbo)
+target_link_libraries(core PUBLIC OpenMP::OpenMP_CXX turbojpeg-static stdc++fs)
+
+add_executable(decompress_threadpool decompress_threadpool.cpp)
+target_link_libraries(decompress_threadpool PUBLIC core)
+
+add_executable(decompress_openmp decompress_openmp.cpp)
+target_link_libraries(decompress_openmp PUBLIC core)

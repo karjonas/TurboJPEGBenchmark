@@ -19,7 +19,7 @@ int main(int argc, char *argv[])
     const size_t num_threads = static_cast<size_t>(std::stoi(argv[5]));
 
     auto td = load_test_data(directory, width, height, num_frames, num_threads);
-    std::cout << "Running benchmark" << std::endl;
+    std::cout << "Running benchmark [threadpool]" << std::endl;
     const auto tr = decompress_threadpool(td);
     print_results(td, tr);
 
