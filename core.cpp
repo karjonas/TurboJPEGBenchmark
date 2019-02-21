@@ -192,6 +192,45 @@ TimingResult decompress_threadpool(TestData &td)
     return tr;
 }
 
+TestData load_test_data(const std::string directory, const size_t width,
+                        const size_t height, const size_t num_frames,
+                        const size_t num_threads)
+{
+    TestData td;
+    const auto paths = get_directory(directory);
+
+    MemJPEG mjpg = read_file_jpeg(paths.front());
+    RawImg raw = decompress_memory_turbo_jpeg(mjpg);
+
+    if (false)
+    {
+        write_ppm(raw, "output.ppm");
+    };
+
+    td.width = width;
+    td.height = height;
+    td.tile_width = raw.width;
+    td.tile_height = raw.height;
+    td.num_frames = num_frames;
+    td.num_threads = num_threads;
+    td.num_tiles = (td.width / td.tile_width) * (td.height / td.tile_height);
+    td.jpgs.resize(td.num_tiles);
+    td.imgs.resize(td.num_tiles);
+
+    {
+        std::cout << "Loading tiles" << std::endl;
+        size_t ctr = 0;
+        for (int i = 0; i < td.num_tiles; i++)
+        {
+            ctr = ctr % paths.size();
+            td.jpgs[i] = read_file_jpeg(paths[ctr]);
+            ctr++;
+        }
+    }
+
+    return td;
+}
+
 void print_results(const TestData &td, const TimingResult &tr)
 {
     std::cout << "Ran " << td.num_frames << " frames with " << td.num_tiles

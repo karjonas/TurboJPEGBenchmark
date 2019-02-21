@@ -13,39 +13,12 @@ int main(int argc, char *argv[])
     }
 
     const std::string directory = argv[1];
-    const auto paths = get_directory(directory);
+    const size_t width = static_cast<size_t>(std::stoi(argv[2]));
+    const size_t height = static_cast<size_t>(std::stoi(argv[3]));
+    const size_t num_frames = static_cast<size_t>(std::stoi(argv[4]));
+    const size_t num_threads = static_cast<size_t>(std::stoi(argv[5]));
 
-    MemJPEG mjpg = read_file_jpeg(paths.front());
-    RawImg raw = decompress_memory_turbo_jpeg(mjpg);
-
-    if (true)
-    {
-        write_ppm(raw, "output.ppm");
-    };
-
-    TestData td;
-
-    td.width = static_cast<size_t>(std::stoi(argv[2]));
-    td.height = static_cast<size_t>(std::stoi(argv[3]));
-    td.tile_width = raw.width;
-    td.tile_height = raw.height;
-    td.num_frames = static_cast<size_t>(std::stoi(argv[4]));
-    td.num_threads = static_cast<size_t>(std::stoi(argv[5]));
-    td.num_tiles = (td.width / td.tile_width) * (td.height / td.tile_height);
-    td.jpgs.resize(td.num_tiles);
-    td.imgs.resize(td.num_tiles);
-
-    {
-        std::cout << "Loading tiles" << std::endl;
-        size_t ctr = 0;
-        for (int i = 0; i < td.num_tiles; i++)
-        {
-            ctr = ctr % paths.size();
-            td.jpgs[i] = read_file_jpeg(paths[ctr]);
-            ctr++;
-        }
-    }
-
+    auto td = load_test_data(directory, width, height, num_frames, num_threads);
     std::cout << "Running benchmark" << std::endl;
     const auto tr = decompress_threadpool(td);
     print_results(td, tr);
