@@ -224,6 +224,8 @@ TestData load_test_data(const std::string directory, const size_t width,
                         const size_t height, const size_t num_frames,
                         const size_t num_threads)
 {
+    std::cout << "Loading tiles..." << std::endl;
+
     TestData td;
     const auto paths = get_directory(directory);
 
@@ -245,8 +247,10 @@ TestData load_test_data(const std::string directory, const size_t width,
     td.jpgs.resize(td.num_tiles);
     td.imgs.resize(td.num_tiles);
 
+    std::cout << "Tile size: " << td.tile_width << "x" << td.tile_height
+              << std::endl;
+
     {
-        std::cout << "Loading tiles" << std::endl;
         size_t ctr = 0;
         for (int i = 0; i < td.num_tiles; i++)
         {
