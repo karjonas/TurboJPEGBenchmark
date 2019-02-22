@@ -27,5 +27,5 @@ Average fps: 26.178
 Creating tiles:
 ```
 mkdir tiles_64
-convert totile.png +gravity -crop 64x64 -quality 80 -sampling-factor 1:1:1 -extent 64x64 'tiles_64/tile_%05d.jpg'
+convert totile.png +gravity -crop 64x64 -background transparent -quality 80 -sampling-factor 1:1:1 -extent 64x64 'tiles_64/tile_%05d.jpg'
 ```
