@@ -35,6 +35,11 @@ struct TestData
     size_t num_seconds{0};
     size_t num_threads{0};
     size_t num_tiles{0};
+
+    bool omp_static{false};
+    bool omp_dynamic{false};
+    size_t omp_chunk_size{0};
+
     std::vector<MemJPEG> jpgs;
     std::vector<RawImg> imgs;
 };

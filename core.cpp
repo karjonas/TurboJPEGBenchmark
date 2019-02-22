@@ -27,6 +27,8 @@ namespace fs = std::experimental::filesystem;
 #include <map>
 #include <tuple>
 
+#include "omp.h"
+
 typedef std::chrono::high_resolution_clock Clock;
 
 #if 0
@@ -168,6 +170,8 @@ TimingResult decompress_threadpool(TestData &td)
     ctpl::thread_pool p(td.num_threads);
     std::vector<std::future<void>> results(td.num_tiles);
 
+    std::cout << "Using " << td.num_threads << " threads" << std::endl;
+
     while (true)
     {
         auto t1 = Clock::now();
@@ -198,20 +202,24 @@ TimingResult decompress_threadpool(TestData &td)
     return tr;
 }
 
-TimingResult decompress_openmp(TestData &td)
+TimingResult decompress_openmp_internal(TestData &td, std::function<void()> f)
 {
     TimingResult tr;
+
+    if (td.num_threads > 0)
+    {
+        omp_set_num_threads(td.num_threads);
+        std::cout << "Using " << td.num_threads << " threads" << std::endl;
+    }
+    else
+    {
+        std::cout << "Using default threads" << std::endl;
+    }
 
     while (true)
     {
         auto t1 = Clock::now();
-
-#pragma omp parallel for
-        for (int i = 0; i < td.num_tiles; i++)
-        {
-            td.imgs[i] = decompress_memory_turbo_jpeg(td.jpgs[i]);
-        }
-
+        f();
         auto t2 = Clock::now();
 
         const auto cnt = static_cast<size_t>(
@@ -226,8 +234,103 @@ TimingResult decompress_openmp(TestData &td)
         if (tr.total_ms > td.num_seconds * 1000)
             break;
     }
-
     return tr;
+}
+
+#define STRINGIFY(a) #a
+
+#define LOOP_SETTINGS(STATIC_DYNAMIC, CHUNK_SIZE)                                 \
+    _Pragma( STRINGIFY( omp parallel for schedule (STATIC_DYNAMIC, CHUNK_SIZE) )) \
+    for (int i = 0; i < td.num_tiles; i++)                                        \
+    {                                                                             \
+        td.imgs[i] = decompress_memory_turbo_jpeg(td.jpgs[i]);                    \
+    }
+
+TimingResult decompress_openmp(TestData &td)
+{
+    size_t chunksize{0};
+
+    if (td.omp_chunk_size >= 1024)
+        chunksize = 1024;
+    else if (td.omp_chunk_size >= 512)
+        chunksize = 512;
+    else if (td.omp_chunk_size >= 256)
+        chunksize = 256;
+    else if (td.omp_chunk_size >= 128)
+        chunksize = 128;
+    else if (td.omp_chunk_size >= 64)
+        chunksize = 64;
+    else if (td.omp_chunk_size >= 32)
+        chunksize = 32;
+    else if (td.omp_chunk_size >= 16)
+        chunksize = 16;
+    else if (td.omp_chunk_size >= 8)
+        chunksize = 8;
+    else if (td.omp_chunk_size >= 4)
+        chunksize = 4;
+    else if (td.omp_chunk_size >= 2)
+        chunksize = 2;
+    else
+        chunksize = 1;
+
+    std::function<void()> f;
+
+    if (td.omp_static)
+    {
+        std::cout << "Using static scheduling" << std::endl;
+        if (chunksize == 1024)
+            f = [&]() { LOOP_SETTINGS(static, 1024) };
+        else if (chunksize == 512)
+            f = [&]() { LOOP_SETTINGS(static, 512) };
+        else if (chunksize == 256)
+            f = [&]() { LOOP_SETTINGS(static, 256) };
+        else if (chunksize == 128)
+            f = [&]() { LOOP_SETTINGS(static, 128) };
+        else if (chunksize == 64)
+            f = [&]() { LOOP_SETTINGS(static, 64) };
+        else if (chunksize == 32)
+            f = [&]() { LOOP_SETTINGS(static, 32) };
+        else if (chunksize == 16)
+            f = [&]() { LOOP_SETTINGS(static, 16) };
+        else if (chunksize == 8)
+            f = [&]() { LOOP_SETTINGS(static, 8) };
+        else if (chunksize == 4)
+            f = [&]() { LOOP_SETTINGS(static, 4) };
+        else if (chunksize == 2)
+            f = [&]() { LOOP_SETTINGS(static, 2) };
+        else
+            f = [&]() { LOOP_SETTINGS(static, 1) };
+    }
+    else
+    {
+        std::cout << "Using dynamic scheduling" << std::endl;
+        if (chunksize == 1024)
+            f = [&]() { LOOP_SETTINGS(dynamic, 1024) };
+        else if (chunksize == 512)
+            f = [&]() { LOOP_SETTINGS(dynamic, 512) };
+        else if (chunksize == 256)
+            f = [&]() { LOOP_SETTINGS(dynamic, 256) };
+        else if (chunksize == 128)
+            f = [&]() { LOOP_SETTINGS(dynamic, 128) };
+        else if (chunksize == 64)
+            f = [&]() { LOOP_SETTINGS(dynamic, 64) };
+        else if (chunksize == 32)
+            f = [&]() { LOOP_SETTINGS(dynamic, 32) };
+        else if (chunksize == 16)
+            f = [&]() { LOOP_SETTINGS(dynamic, 16) };
+        else if (chunksize == 8)
+            f = [&]() { LOOP_SETTINGS(dynamic, 8) };
+        else if (chunksize == 4)
+            f = [&]() { LOOP_SETTINGS(dynamic, 4) };
+        else if (chunksize == 2)
+            f = [&]() { LOOP_SETTINGS(dynamic, 2) };
+        else
+            f = [&]() { LOOP_SETTINGS(dynamic, 1) };
+    }
+
+    std::cout << "Using " << chunksize << " chunk size " << std::endl;
+
+    return decompress_openmp_internal(td, f);
 }
 
 TestData load_test_data(const std::string directory, const size_t width,
