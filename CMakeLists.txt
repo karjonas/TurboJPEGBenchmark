@@ -28,8 +28,6 @@ target_include_directories(core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/libjpeg-turbo
 target_include_directories(core PUBLIC ${CMAKE_BINARY_DIR}/libjpeg-turbo)
 target_link_libraries(core PUBLIC OpenMP::OpenMP_CXX turbojpeg-static stdc++fs)
 
-add_executable(decompress_threadpool decompress_threadpool.cpp)
-target_link_libraries(decompress_threadpool PUBLIC core)
-
-add_executable(decompress_openmp decompress_openmp.cpp)
-target_link_libraries(decompress_openmp PUBLIC core)
+add_subdirectory(CLI11)
+add_executable(benchmark benchmark.cpp)
+target_link_libraries(benchmark PUBLIC core CLI11::CLI11)
