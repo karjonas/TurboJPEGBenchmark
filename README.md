@@ -14,13 +14,20 @@ make
 Running:
 
 ```
-./decompress ../test.jpeg 100 650
+./benchmark --directory ../tiles_128 --width 15364 --height 3424 -s 5 -t 8 
+Loading tiles...
+128x128: 3120
 
-Input: Read 12649/12649 bytes
-Ran 100 frames with 650 tiles in 3820 ms
-Best frame: 36 ms
-Worst frame: 83 ms
-Average fps: 26.178
+Running benchmark [openmp]...
+Using dynamic scheduling
+Using 1 chunk size 
+Using 8 threads
+
+Ran 85 frames with 3120 tiles in 5025 ms
+Best frame: 58 ms
+Worst frame: 77 ms
+Average fps: 16.9154
+Megapixels/s: 864.684
 ```
 
 
