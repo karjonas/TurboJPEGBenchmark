@@ -206,16 +206,6 @@ TimingResult decompress_openmp_internal(TestData &td, std::function<void()> f)
 {
     TimingResult tr;
 
-    if (td.num_threads > 0)
-    {
-        omp_set_num_threads(td.num_threads);
-        std::cout << "Using " << td.num_threads << " threads" << std::endl;
-    }
-    else
-    {
-        std::cout << "Using default threads" << std::endl;
-    }
-
     while (true)
     {
         auto t1 = Clock::now();
@@ -329,6 +319,17 @@ TimingResult decompress_openmp(TestData &td)
     }
 
     std::cout << "Using " << chunksize << " chunk size " << std::endl;
+
+    if (td.num_threads > 0)
+    {
+        omp_set_num_threads(td.num_threads);
+        std::cout << "Using " << td.num_threads << " threads" << std::endl;
+    }
+    else
+    {
+        std::cout << "Using default threads" << std::endl;
+    }
+    std::cout << std::endl;
 
     return decompress_openmp_internal(td, f);
 }
