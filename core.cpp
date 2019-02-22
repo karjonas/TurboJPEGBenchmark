@@ -23,6 +23,7 @@ namespace fs = std::experimental::filesystem;
 #include "ctpl_stl.h"
 #include <turbojpeg.h>
 
+#include <cstring>
 #include <limits>
 #include <map>
 #include <tuple>
@@ -227,6 +228,26 @@ TimingResult decompress_openmp_internal(TestData &td, std::function<void()> f)
     return tr;
 }
 
+void copy_tile_to_output_image(const RawImg &tile, const size_t tile_i,
+                               RawImg &img, const TestData &td)
+{
+    const auto num_x = td.width / td.tile_width;
+
+    const auto tile_y = tile_i / num_x;
+    const auto tile_x = tile_i % num_x;
+    const auto buffer_y = tile_y * td.tile_height;
+    const auto buffer_x = tile_x * td.tile_width;
+
+    for (int l = 0; l < td.tile_height; l++)
+    {
+        const auto line_width = td.tile_width * 3;
+        const auto line_dst_start = ((buffer_y + l) * td.width + buffer_x) * 3;
+        const auto line_src_start = (l * td.tile_width) * 3;
+        memcpy(img.bmp_buffer.data() + line_dst_start,
+               td.imgs[tile_i].bmp_buffer.data() + line_src_start, line_width);
+    }
+}
+
 #define STRINGIFY(a) #a
 
 #define LOOP_SETTINGS(STATIC_DYNAMIC, CHUNK_SIZE)                                 \
@@ -234,10 +255,20 @@ TimingResult decompress_openmp_internal(TestData &td, std::function<void()> f)
     for (int i = 0; i < td.num_tiles; i++)                                        \
     {                                                                             \
         td.imgs[i] = decompress_memory_turbo_jpeg(td.jpgs[i]);                    \
+        copy_tile_to_output_image(td.imgs[i], i, img, td);                        \
     }
 
 TimingResult decompress_openmp(TestData &td)
 {
+    RawImg img;
+    img.bmp_buffer.resize(td.num_tiles * td.tile_width * td.tile_height * 3);
+    img.width = td.width;
+    img.height = td.height;
+    img.pixel_size = 3;
+    img.bmp_size = td.width * td.height * img.pixel_size;
+    img.bmp_buffer.resize(img.bmp_size);
+    img.row_stride = td.width * img.pixel_size;
+
     size_t chunksize{0};
 
     if (td.omp_chunk_size >= 1024)
@@ -263,7 +294,18 @@ TimingResult decompress_openmp(TestData &td)
     else
         chunksize = 1;
 
-    std::function<void()> f;
+    std::function<void()> f = [&]() {
+        for (int tile_i = 0; tile_i < td.num_tiles; tile_i++)
+        {
+            td.imgs[tile_i] = decompress_memory_turbo_jpeg(td.jpgs[tile_i]);
+            copy_tile_to_output_image(td.imgs[tile_i], tile_i, img, td);
+        }
+
+        if (false)
+        {
+            write_ppm(img, "assembled.ppm");
+        }
+    };
 
     if (td.omp_static)
     {
