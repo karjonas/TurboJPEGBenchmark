@@ -24,6 +24,8 @@ namespace fs = std::experimental::filesystem;
 #include <turbojpeg.h>
 
 #include <limits>
+#include <map>
+#include <tuple>
 
 typedef std::chrono::high_resolution_clock Clock;
 
@@ -247,8 +249,7 @@ TestData load_test_data(const std::string directory, const size_t width,
     td.jpgs.resize(td.num_tiles);
     td.imgs.resize(td.num_tiles);
 
-    std::cout << "Tile size: " << td.tile_width << "x" << td.tile_height
-              << std::endl;
+    std::map<std::pair<int, int>, size_t> tile_sizes;
 
     {
         size_t ctr = 0;
@@ -256,9 +257,16 @@ TestData load_test_data(const std::string directory, const size_t width,
         {
             ctr = ctr % paths.size();
             td.jpgs[i] = read_file_jpeg(paths[ctr]);
+            const auto raw_i = decompress_memory_turbo_jpeg(td.jpgs[i]);
+            tile_sizes[std::make_pair<int, int>(raw_i.width, raw_i.height)] +=
+                1;
             ctr++;
         }
     }
+
+    for (const auto &kv : tile_sizes)
+        std::cout << kv.first.first << "x" << kv.first.second << ": "
+                  << kv.second << std::endl;
 
     return td;
 }
