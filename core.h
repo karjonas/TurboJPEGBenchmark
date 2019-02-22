@@ -23,6 +23,7 @@ struct TimingResult
     size_t best_frame_ms{std::numeric_limits<size_t>::max()};
     size_t worst_frame_ms{0};
     size_t total_ms{0};
+    size_t num_frames{0};
 };
 
 struct TestData
@@ -31,7 +32,7 @@ struct TestData
     size_t height{0};
     size_t tile_width{0};
     size_t tile_height{0};
-    size_t num_frames{0};
+    size_t num_seconds{0};
     size_t num_threads{0};
     size_t num_tiles{0};
     std::vector<MemJPEG> jpgs;
@@ -45,6 +46,6 @@ void write_ppm(const RawImg &raw, const std::string &output);
 TimingResult decompress_threadpool(TestData &td);
 TimingResult decompress_openmp(TestData &td);
 TestData load_test_data(const std::string directory, const size_t width,
-                        const size_t height, const size_t num_frames,
+                        const size_t height, const size_t num_seconds,
                         const size_t num_threads);
 void print_results(const TestData &td, const TimingResult &tr);

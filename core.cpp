@@ -168,7 +168,7 @@ TimingResult decompress_threadpool(TestData &td)
     ctpl::thread_pool p(td.num_threads);
     std::vector<std::future<void>> results(td.num_tiles);
 
-    for (int frame = 0; frame < td.num_frames; frame++)
+    while (true)
     {
         auto t1 = Clock::now();
 
@@ -189,6 +189,10 @@ TimingResult decompress_threadpool(TestData &td)
         tr.best_frame_ms = std::min(cnt, tr.best_frame_ms);
         tr.worst_frame_ms = std::max(cnt, tr.worst_frame_ms);
         tr.total_ms += cnt;
+        tr.num_frames += 1;
+
+        if (tr.total_ms > td.num_seconds * 1000)
+            break;
     }
 
     return tr;
@@ -198,7 +202,7 @@ TimingResult decompress_openmp(TestData &td)
 {
     TimingResult tr;
 
-    for (int frame = 0; frame < td.num_frames; frame++)
+    while (true)
     {
         auto t1 = Clock::now();
 
@@ -217,13 +221,17 @@ TimingResult decompress_openmp(TestData &td)
         tr.best_frame_ms = std::min(cnt, tr.best_frame_ms);
         tr.worst_frame_ms = std::max(cnt, tr.worst_frame_ms);
         tr.total_ms += cnt;
+        tr.num_frames += 1;
+
+        if (tr.total_ms > td.num_seconds * 1000)
+            break;
     }
 
     return tr;
 }
 
 TestData load_test_data(const std::string directory, const size_t width,
-                        const size_t height, const size_t num_frames,
+                        const size_t height, const size_t num_seconds,
                         const size_t num_threads)
 {
     std::cout << "Loading tiles..." << std::endl;
@@ -243,7 +251,7 @@ TestData load_test_data(const std::string directory, const size_t width,
     td.height = height;
     td.tile_width = raw.width;
     td.tile_height = raw.height;
-    td.num_frames = num_frames;
+    td.num_seconds = num_seconds;
     td.num_threads = num_threads;
     td.num_tiles = (td.width / td.tile_width) * (td.height / td.tile_height);
     td.jpgs.resize(td.num_tiles);
@@ -267,23 +275,24 @@ TestData load_test_data(const std::string directory, const size_t width,
     for (const auto &kv : tile_sizes)
         std::cout << kv.first.first << "x" << kv.first.second << ": "
                   << kv.second << std::endl;
+    std::cout << std::endl;
 
     return td;
 }
 
 void print_results(const TestData &td, const TimingResult &tr)
 {
-    std::cout << "Ran " << td.num_frames << " frames with " << td.num_tiles
+    std::cout << "Ran " << tr.num_frames << " frames with " << td.num_tiles
               << " tiles in " << tr.total_ms << " ms" << std::endl;
 
     std::cout << "Best frame: " << tr.best_frame_ms << " ms" << std::endl;
     std::cout << "Worst frame: " << tr.worst_frame_ms << " ms" << std::endl;
 
-    std::cout << "Average fps: " << (td.num_frames * 1000.0 / tr.total_ms)
+    std::cout << "Average fps: " << (tr.num_frames * 1000.0 / tr.total_ms)
               << std::endl;
 
     const size_t pixels_decoded =
-        (td.tile_width * td.tile_height) * td.num_tiles * td.num_frames;
+        (td.tile_width * td.tile_height) * td.num_tiles * tr.num_frames;
     std::cout << "Megapixels/s: "
               << (pixels_decoded * 1000.0 * 0.000001 / tr.total_ms)
               << std::endl;
