@@ -5,6 +5,7 @@ This application will benchmark decoding jpeg images in parallel using libjpeg-t
 Compiling:
 
 ```
+git submodule update --init
 mkdir build
 cd build
 cmake ..
